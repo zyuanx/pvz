@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
-	"os"
 	"time"
 	"unsafe"
 
@@ -26,46 +25,68 @@ var (
 	AllZombieFlag         = false
 )
 
+var (
+	pid         int32
+	pHandler    windows.Handle
+	err         error
+	baseAddress uint32
+)
+
 func main() {
 	myApp := app.New()
-	myWindow := myApp.NewWindow("Choice Widgets")
-	myWindow.Resize(fyne.NewSize(300, 200))
-	content := widget.NewLabel("text")
-	pid := getProcessPid()
-	for pid == 0 {
-		pid = getProcessPid()
-		time.Sleep(time.Second * 1)
-		content.Text = "Game not running"
-	}
-	content.Text = "Game running"
-	pHandler, err := getProcessHandle(pid)
-	if err != nil {
-		fmt.Println("[-] 获取目标进程句柄失败", err)
-		return
-	}
-	baseAddress, err := getProcessAddress(pHandler)
-	if err != nil {
-		fmt.Println("[-] 获取目标进程模块基址失败", err)
-		return
-	}
+	myWindow := myApp.NewWindow("Plants vs. Zombies")
+	myWindow.Resize(fyne.NewSize(300, 230))
+	content := widget.NewLabel("Game not running")
+	start := make(chan int)
 
-	go setUnlimitedSunshine(pHandler, baseAddress)
-	USCheck := widget.NewCheck("UnlimitedSunshine", func(value bool) {
+	UnlimitedSunshineCheck := widget.NewCheck("UnlimitedSunshine", func(value bool) {
 		UnlimitedSunshineFlag = value
 	})
-	go setNoCD(pHandler, baseAddress)
-	NoCDCheck := widget.NewCheck("NoCD", func(value bool) {
+	UnlimitedSunshineCheck.Disable()
+	NoCoolingCheck := widget.NewCheck("NoCooling", func(value bool) {
 		NoCDFlag = value
 	})
-	go setAllZombie(pHandler, baseAddress)
-	AZCheck := widget.NewCheck("AllZombie", func(value bool) {
+	NoCoolingCheck.Disable()
+	AllZombieComingCheck := widget.NewCheck("AllZombieComing", func(value bool) {
 		AllZombieFlag = value
 	})
-	LKCheck := widget.NewCheck("LightningKill", func(value bool) {
-		setLightningKill(pHandler, baseAddress, value)
+	AllZombieComingCheck.Disable()
+	KillInstantlyCheck := widget.NewCheck("LightningKill", func(value bool) {
+		setKillInstantly(pHandler, baseAddress, value)
 	})
+	KillInstantlyCheck.Disable()
 
-	myWindow.SetContent(container.NewVBox(content, USCheck, NoCDCheck, AZCheck, LKCheck))
+	go func() {
+		pid = getProcessPid()
+		for pid == 0 {
+			pid = getProcessPid()
+			time.Sleep(time.Second * 1)
+		}
+		content.SetText("Game is running")
+		pHandler, err = getProcessHandle(pid)
+		if err != nil {
+			fmt.Println("[-] 获取目标进程句柄失败", err)
+			return
+		}
+		baseAddress, err = getProcessAddress(pHandler)
+		if err != nil {
+			fmt.Println("[-] 获取目标进程模块基址失败", err)
+			return
+		}
+		UnlimitedSunshineCheck.Enable()
+		NoCoolingCheck.Enable()
+		AllZombieComingCheck.Enable()
+		KillInstantlyCheck.Enable()
+		start <- 1
+	}()
+	go func() {
+		<-start
+		go setUnlimitedSunshine(pHandler, baseAddress)
+		go setNoCooling(pHandler, baseAddress)
+		go setAllZombieComing(pHandler, baseAddress)
+	}()
+
+	myWindow.SetContent(container.NewVBox(content, UnlimitedSunshineCheck, NoCoolingCheck, AllZombieComingCheck, KillInstantlyCheck))
 	myWindow.ShowAndRun()
 }
 
@@ -95,7 +116,7 @@ func setUnlimitedSunshine(pHandler windows.Handle, baseAddress uint32) {
 	}
 }
 
-func setNoCD(pHandler windows.Handle, baseAddress uint32) {
+func setNoCooling(pHandler windows.Handle, baseAddress uint32) {
 	addrs := make([]uint32, 10)
 	offset := []uint32{0x331C50, 0x868, 0x15C, 0x70}
 	cdLock := []byte{0x01, 0x00, 0x00, 0x00}
@@ -125,10 +146,10 @@ func setNoCD(pHandler windows.Handle, baseAddress uint32) {
 
 }
 
-func setAllZombie(pHandler windows.Handle, baseAddress uint32) {
+func setAllZombieComing(pHandler windows.Handle, baseAddress uint32) {
 	offset := []uint32{0x331C50, 0x868, 0x55B4}
 	sunshineNum := []byte{0x01, 0x00, 0x00, 0x00}
-	tk := time.NewTicker(time.Millisecond * 500)
+	tk := time.NewTicker(time.Millisecond * 1)
 	for range tk.C {
 		if !AllZombieFlag {
 			continue
@@ -151,7 +172,7 @@ func setAllZombie(pHandler windows.Handle, baseAddress uint32) {
 	}
 }
 
-func setLightningKill(pHandler windows.Handle, baseAddress uint32, flag bool) {
+func setKillInstantly(pHandler windows.Handle, baseAddress uint32, flag bool) {
 	// 秒杀
 	offset := []uint32{0x145DFA}
 	killVal := []byte{0x29, 0xED, 0x90, 0x90}
@@ -216,14 +237,14 @@ func getProcessAddress(pHandler windows.Handle) (uint32, error) {
 	if err := windows.EnumProcessModulesEx(pHandler, &module, uint32(unsafe.Sizeof(module)), &cbNeeded, windows.LIST_MODULES_DEFAULT); err != nil {
 		return 0, err
 	}
-	exePath, _ := os.Executable()
-	modulePathUTF16 := make([]uint16, len(exePath)+1)
+	// exePath, _ := os.Executable()
+	// modulePathUTF16 := make([]uint16, len(exePath)+1)
 
-	if err := windows.GetModuleBaseName(pHandler, module, &modulePathUTF16[0], uint32(len(modulePathUTF16))); err != nil {
-		return 0, err
-	}
-	modulePath := windows.UTF16ToString(modulePathUTF16)
-	fmt.Println(modulePath, module)
+	// if err := windows.GetModuleBaseName(pHandler, module, &modulePathUTF16[0], uint32(len(modulePathUTF16))); err != nil {
+	// 	return 0, err
+	// }
+	// modulePath := windows.UTF16ToString(modulePathUTF16)
+	// fmt.Println(modulePath, module)
 	baseAddress := uint32(module)
 	// var module [1024]windows.Handle
 	// var cbNeeded uint32
