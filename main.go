@@ -39,19 +39,19 @@ func main() {
 	content := widget.NewLabel("Game not running")
 	start := make(chan int)
 
-	UnlimitedSunshineCheck := widget.NewCheck("UnlimitedSunshine", func(value bool) {
+	UnlimitedSunshineCheck := widget.NewCheck("Unlimited Sunshine", func(value bool) {
 		UnlimitedSunshineFlag = value
 	})
 	UnlimitedSunshineCheck.Disable()
-	NoCoolingCheck := widget.NewCheck("NoCooling", func(value bool) {
+	NoCoolingCheck := widget.NewCheck("No Cooling", func(value bool) {
 		NoCDFlag = value
 	})
 	NoCoolingCheck.Disable()
-	AllZombieComingCheck := widget.NewCheck("AllZombieComing", func(value bool) {
+	AllZombieComingCheck := widget.NewCheck("All Zombie Coming", func(value bool) {
 		AllZombieFlag = value
 	})
 	AllZombieComingCheck.Disable()
-	KillInstantlyCheck := widget.NewCheck("LightningKill", func(value bool) {
+	KillInstantlyCheck := widget.NewCheck("Kill Instantly", func(value bool) {
 		setKillInstantly(pHandler, baseAddress, value)
 	})
 	KillInstantlyCheck.Disable()
