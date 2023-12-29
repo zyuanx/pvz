@@ -12,6 +12,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 	"github.com/shirou/gopsutil/process"
+	"github.com/zyuanx/pvz/theme"
 	"golang.org/x/sys/windows"
 )
 
@@ -34,24 +35,25 @@ var (
 
 func main() {
 	myApp := app.New()
+	myApp.Settings().SetTheme(&theme.MyTheme{})
 	myWindow := myApp.NewWindow("Plants vs. Zombies")
 	myWindow.Resize(fyne.NewSize(300, 230))
-	content := widget.NewLabel("Game not running")
+	content := widget.NewLabel("游戏未启动")
 	start := make(chan int)
 
-	UnlimitedSunshineCheck := widget.NewCheck("Unlimited Sunshine", func(value bool) {
+	UnlimitedSunshineCheck := widget.NewCheck("无限阳光", func(value bool) {
 		UnlimitedSunshineFlag = value
 	})
 	UnlimitedSunshineCheck.Disable()
-	NoCoolingCheck := widget.NewCheck("No Cooling", func(value bool) {
+	NoCoolingCheck := widget.NewCheck("无CD", func(value bool) {
 		NoCDFlag = value
 	})
 	NoCoolingCheck.Disable()
-	AllZombieComingCheck := widget.NewCheck("All Zombie Coming", func(value bool) {
+	AllZombieComingCheck := widget.NewCheck("僵尸倾巢", func(value bool) {
 		AllZombieFlag = value
 	})
 	AllZombieComingCheck.Disable()
-	KillInstantlyCheck := widget.NewCheck("Kill Instantly", func(value bool) {
+	KillInstantlyCheck := widget.NewCheck("秒杀僵尸", func(value bool) {
 		setKillInstantly(pHandler, baseAddress, value)
 	})
 	KillInstantlyCheck.Disable()
@@ -60,9 +62,9 @@ func main() {
 		pid = getProcessPid()
 		for pid == 0 {
 			pid = getProcessPid()
-			time.Sleep(time.Second * 1)
+			time.Sleep(time.Millisecond * 500)
 		}
-		content.SetText("Game is running")
+		content.SetText("游戏运行中")
 		pHandler, err = getProcessHandle(pid)
 		if err != nil {
 			fmt.Println("[-] 获取目标进程句柄失败", err)
