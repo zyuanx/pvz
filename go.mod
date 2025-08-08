@@ -4,6 +4,7 @@ go 1.21.0
 
 require (
 	fyne.io/fyne/v2 v2.4.1
+	github.com/ZeronoFreya/go-hotkey v0.0.0-20230119133136-fab615cea0f6
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	golang.org/x/sys v0.13.0
 )
